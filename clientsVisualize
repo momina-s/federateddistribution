@@ -1,0 +1,42 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load and label data
+df = pd.read_csv("AMZN.csv")
+df['Label'] = (df['Close'].diff().fillna(0) > 0).astype(int)
+
+# Simulate imbalance: Class 1 first, Class 0 later
+df_sorted = pd.concat([df[df['Label'] == 1], df[df['Label'] == 0]]).reset_index(drop=True)
+
+# Split into 20 clients
+num_clients = 20
+clients = np.array_split(df_sorted, num_clients)
+
+# Count class labels per client
+class_0_counts = []
+class_1_counts = []
+for client in clients:
+    vc = client['Label'].value_counts()
+    class_0_counts.append(vc.get(0, 0))
+    class_1_counts.append(vc.get(1, 0))
+
+# Plot
+client_labels = [f"C{i+1}" for i in range(num_clients)]
+cmap = plt.get_cmap("tab20")
+
+plt.figure(figsize=(14, 7))
+for i in range(num_clients):
+    plt.bar(client_labels[i], class_0_counts[i], color=cmap(i), label=f"C{i+1} - Class 0")
+    plt.bar(client_labels[i], class_1_counts[i], bottom=class_0_counts[i], color=cmap((i + 10) % 20), label=f"C{i+1} - Class 1")
+
+# Make cleaner legend
+handles, labels = plt.gca().get_legend_handles_labels()
+unique = dict(zip(labels, handles))
+plt.legend(unique.values(), unique.keys(), bbox_to_anchor=(1.05, 1), loc='upper left')
+
+plt.title("Client-Wise Class Distribution (Distinct Colors)")
+plt.ylabel("Number of Samples")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
