@@ -1,0 +1,44 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load dataset
+df = pd.read_csv('data/csv/AMZN.csv')
+
+# Generate binary labels based on price change
+df['Label'] = (df['Close'].diff().fillna(0) > 0).astype(int)
+
+# Simulate distribution to N clients
+num_clients = 5
+shuffled_indices = np.random.permutation(len(df))
+client_splits = np.array_split(df.iloc[shuffled_indices], num_clients)
+
+# Count class distribution per client
+client_distributions = []
+for i, split in enumerate(client_splits):
+    counts = split['Label'].value_counts().to_dict()
+    client_distributions.append({
+        'Client': f'Client {i+1}',
+        'Up (1)': counts.get(1, 0),
+        'Down (0)': counts.get(0, 0)
+    })
+
+# Visualize
+labels = [dist['Client'] for dist in client_distributions]
+up_counts = [dist['Up (1)'] for dist in client_distributions]
+down_counts = [dist['Down (0)'] for dist in client_distributions]
+
+x = np.arange(len(labels))
+width = 0.35
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.bar(x - width/2, up_counts, width, label='Up (1)', color='green')
+ax.bar(x + width/2, down_counts, width, label='Down (0)', color='red')
+
+ax.set_ylabel('Sample Count')
+ax.set_title('Class Distribution per Client (Simulated Federated Setup)')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+plt.tight_layout()
+plt.show()
