@@ -1,0 +1,45 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+# Output directory
+os.makedirs("fashion_mnist_charts", exist_ok=True)
+
+# Setup
+classes = list(range(10))
+x = np.arange(len(classes))
+width = 0.35
+num_clients = 10
+np.random.seed(42)
+
+# Simulate original and SMOTE-like distributions
+original_distributions = {
+    f"Client {i+1}": np.random.multinomial(1000, np.random.dirichlet(np.ones(10)))
+    for i in range(num_clients)
+}
+smote_distributions = {
+    client: [c if c == max(counts) else c + int(0.7 * (max(counts) - c)) for c in counts]
+    for client, counts in original_distributions.items()
+}
+
+# Generate and save 2 figures (5 clients each)
+for page in range(2):
+    fig, axs = plt.subplots(5, 1, figsize=(12, 18), sharex=True)
+    for i in range(5):
+        client_idx = page * 5 + i
+        client_name = f"Client {client_idx+1}"
+        orig = original_distributions[client_name]
+        smote = smote_distributions[client_name]
+
+        axs[i].bar(x - width/2, orig, width, label="Before Balancing", color="coral")
+        axs[i].bar(x + width/2, smote, width, label="After SMOTE-like", color="steelblue")
+        axs[i].set_title(f"{client_name} Class Distribution")
+        axs[i].set_ylabel("Samples")
+        axs[i].legend()
+
+    axs[-1].set_xticks(x)
+    axs[-1].set_xticklabels(classes)
+    axs[-1].set_xlabel("Class Label")
+    fig.tight_layout()
+    fig.savefig(f"fashion_mnist_charts/fashion_mnist_clients_page_{page+1}.png")
+    plt.close(fig)
